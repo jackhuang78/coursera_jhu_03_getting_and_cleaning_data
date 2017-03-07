@@ -19,6 +19,7 @@ label = read.table('activity_labels.txt')
 y.labeled = merge(y, label, by.x='V1', by.y='V1', sort=F)
 
 data.all = data.frame(activity=y.labeled$V2, subject=subject$V1, mean=apply(x, 1, mean), sd=apply(x, 1, sd))
+write.table(data.all, 'data.all', row.names=F)
 
 data.average = summarize(group_by(data.all, activity, subject), mean=mean(mean), sd=mean(sd))
 write.table(data.average, 'data_average.txt', row.names=F)
