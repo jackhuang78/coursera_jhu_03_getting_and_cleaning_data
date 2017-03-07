@@ -17,5 +17,5 @@ data.all = data.frame(activity=y.labeled$V2, mean=apply(x, 1, mean), sd=apply(x,
 
 data.grouped = summarize(group_by(data.all, activity), mean=mean(mean), sd=mean(sd))
 
-write.csv(data.all, 'data_all.csv')
-write.csv(data.grouped, 'data_grouped.csv')
+write.table(data.all, 'data_all.txt', row.names=F)
+write.table(data.grouped, 'data_grouped.txt', row.names=F)
