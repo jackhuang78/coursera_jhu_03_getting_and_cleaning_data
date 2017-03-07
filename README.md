@@ -1,66 +1,161 @@
 # Getting and Cleaning Data Course Project
 
 ## How to Use This Script
-Run the script ```run_analysis.R``` in the directory containing the following data files
-* ```X_train.txt```
-* ```X_test.txt```
-* ```Y_train.txt```
-* ```Y_test.txt```
-* ```subject_train.txt```
-* ```subject_test.txt```
-* ```activity_labels.txt```
-
-It will create the following output files:
-* ```data_all.txt```
-* ```data_average.txt```
+Run the script ```run_analysis.R``` in the directory containing the data directory ```UCI HAR Dataset```.
+It will create the output file ```combined_average.txt```.
 
 ## How This Script Works
 
-Import X_train and X_test with read.table() and merge them with rbind(). Do the same to Y and subject. (Step 1)
+Step 1: With ```read.table()``` and ```rbind()```, read in **x**, **y**, and **subject** for training and test data, and combine them.
 ```
-x.train = read.table('X_train.txt')
-x.test = read.table('X_test.txt')
+#
+# Step 1: Merges the training and the test sets to create one data set.
+#
+# import and merge X
+x.train = read.table('UCI HAR Dataset/train/X_train.txt')
+x.test = read.table('UCI HAR Dataset/test/X_test.txt')
 x = rbind(x.train, x.test)
-y.train = read.table('Y_train.txt')
-y.test = read.table('Y_test.txt')
+
+# import and merge Y
+y.train = read.table('UCI HAR Dataset/train/Y_train.txt')
+y.test = read.table('UCI HAR Dataset/test/Y_test.txt')
 y = rbind(y.train, y.test)
-subject.train = read.table('subject_train.txt')
-subject.test = read.table('subject_test.txt')
+
+# improt and merge subject
+subject.train = read.table('UCI HAR Dataset/train/subject_train.txt')
+subject.test = read.table('UCI HAR Dataset/test/subject_test.txt')
 subject = rbind(subject.train, subject.test)
 ```
 
-Get the activity names from activity_labels.txt and merge with Y by each activity's code. (Step 3)
+Step 2: Read in **features**. Use ```grep``` to look through **features** for varaibles with "mean" or "std" in their names. Extract those columns from **x**.
 ```
-label = read.table('activity_labels.txt')
+#
+# Step 2: Extracts only the measurements on the mean and standard deviation for each measurement.
+#
+features = read.table('UCI HAR Dataset/features.txt')
+names(x) = features[,2]
+x.extract = x[,grep('([Mm][Ee][Aa][Nn]|[Ss][Tt][Dd])', features[,2])]
+```
+
+Step 3: Read in **activity_labels**. Merge it with **y** to match activity names with their coding.
+```
+#
+# Step 3: Uses descriptive activity names to name the activities in the data set
+#
+label = read.table('UCI HAR Dataset/activity_labels.txt')
 y.labeled = merge(y, label, by.x='V1', by.y='V1', sort=F)
 ```
 
-Calculate the mean and standard deviation for each measurements. Create a new dataset with appropriate labels. (Step 2 & 4)
+Step 4: Combine **y** (labeled), **subject** and **x** (extracted). Name each column.
 ```
-data.all = data.frame(activity=y.labeled$V2, subject=subject$V1, mean=apply(x, 1, mean), sd=apply(x, 1, sd))
-write.table(data.all, 'data_all.txt', row.names=F)
+#
+# Step 4: Appropriately labels the data set with descriptive variable names.
+#
+combined = cbind(y.labeled$V2, subject, x.extract)
+names(combined) = c('activity', 'subject', names(x.extract))
 ```
 
-Use dplyr library to calculate the average mean and standard devation for each activity. (Step 5)
+Step 5: Using ```group_by``` and ```summarize_each``` from the library ```dplyr```, group all measurements by (activity,subject) and calculate the mean of each.
 ```
+#
+# Step 5: From the data set in step 4, creates a second, independent tidy data set with the average of each variable for each activity and each subject.
+#
 library(dplyr)
-data.average = summarize(group_by(data.all, activity, subject), mean=mean(mean), sd=mean(sd))
-write.table(data.average, 'data_average.txt', row.names=F)
+combined_average = summarize_each(group_by(combined, activity, subject), funs(mean))
+write.table(combined_average, 'combined_average.txt', row.names=F)
 ```
 
-## Codebook
-### data_all.txt
-This dataset contains the smartphone measurement for various sample of activities. The file is a space-delimited text file containing 4 column
-
-1. **activity**: factor; the activity for which the measurement is taken; can be one of WALKING, WALKING_UPSTAIR, WALKING_DOWNSTAIN, SITTING, STANDING, and LAYING
-2. **subject**: factor; the subject from whom the data is collected; can be 1, 2, 3, ..., 30
-3. **mean**: numeric; mean of the smartphone measurement of the activity/subject
-4. **sd**: numeric; standard deviation of the smartphone measurement of the activity/subject
-
-### data_grouped.txt
-This dataset contains the average smartphone measurement for each activity/subject. The file is a space-delimited text file containing 4 columns:
+## Codebook for ```combined_average.txt```
+This dataset contains the average of various measurements for each (activity,subject) combination. The file is a space-delimited text file containing a total of 88 columns. The first two columns are:
 
 1. **activity**: factor; the activity for which the average measurement is calculated; can be one of WALKING, WALKING_UPSTAIR, WALKING_DOWNSTAIN, SITTING, STANDING, and LAYING
-2. **subject**: factor; the subject from whom the data is collected; can be 1, 2, 3, ..., 30
-3. **mean**: numeric; average mean of the smartphone measurement for that activity/subject
-4. **sd**: numeric; average standard deviation of the smartphone measurement for that activity/subject
+1. **subject**: factor; the subject from whom the data is collected; can be 1, 2, 3, ..., 30
+
+The remaining 86 columns are the mean measurements for each particular (activity, subject) combination, as givne by the first two columns. All these measurements are the either mean or std of some data series collected by the smartphone. They are all numeric data type. Here is a complete list of them:
+
+1. tBodyAcc-mean()-X
+1. tBodyAcc-mean()-Y
+1. tBodyAcc-mean()-Z
+1. tBodyAcc-std()-X
+1. tBodyAcc-std()-Y
+1. tBodyAcc-std()-Z
+1. tGravityAcc-mean()-X
+1. tGravityAcc-mean()-Y
+1. tGravityAcc-mean()-Z
+1. tGravityAcc-std()-X
+1. tGravityAcc-std()-Y
+1. tGravityAcc-std()-Z
+1. tBodyAccJerk-mean()-X
+1. tBodyAccJerk-mean()-Y
+1. tBodyAccJerk-mean()-Z
+1. tBodyAccJerk-std()-X
+1. tBodyAccJerk-std()-Y
+1. tBodyAccJerk-std()-Z
+1. tBodyGyro-mean()-X
+1. tBodyGyro-mean()-Y
+1. tBodyGyro-mean()-Z
+1. tBodyGyro-std()-X
+1. tBodyGyro-std()-Y
+1. tBodyGyro-std()-Z
+1. tBodyGyroJerk-mean()-X
+1. tBodyGyroJerk-mean()-Y
+1. tBodyGyroJerk-mean()-Z
+1. tBodyGyroJerk-std()-X
+1. tBodyGyroJerk-std()-Y
+1. tBodyGyroJerk-std()-Z
+1. tBodyAccMag-mean()
+1. tBodyAccMag-std()
+1. tGravityAccMag-mean()
+1. tGravityAccMag-std()
+1. tBodyAccJerkMag-mean()
+1. tBodyAccJerkMag-std()
+1. tBodyGyroMag-mean()
+1. tBodyGyroMag-std()
+1. tBodyGyroJerkMag-mean()
+1. tBodyGyroJerkMag-std()
+1. fBodyAcc-mean()-X
+1. fBodyAcc-mean()-Y
+1. fBodyAcc-mean()-Z
+1. fBodyAcc-std()-X
+1. fBodyAcc-std()-Y
+1. fBodyAcc-std()-Z
+1. fBodyAcc-meanFreq()-X
+1. fBodyAcc-meanFreq()-Y
+1. fBodyAcc-meanFreq()-Z
+1. fBodyAccJerk-mean()-X
+1. fBodyAccJerk-mean()-Y
+1. fBodyAccJerk-mean()-Z
+1. fBodyAccJerk-std()-X
+1. fBodyAccJerk-std()-Y
+1. fBodyAccJerk-std()-Z
+1. fBodyAccJerk-meanFreq()-X
+1. fBodyAccJerk-meanFreq()-Y
+1. fBodyAccJerk-meanFreq()-Z
+1. fBodyGyro-mean()-X
+1. fBodyGyro-mean()-Y
+1. fBodyGyro-mean()-Z
+1. fBodyGyro-std()-X
+1. fBodyGyro-std()-Y
+1. fBodyGyro-std()-Z
+1. fBodyGyro-meanFreq()-X
+1. fBodyGyro-meanFreq()-Y
+1. fBodyGyro-meanFreq()-Z
+1. fBodyAccMag-mean()
+1. fBodyAccMag-std()
+1. fBodyAccMag-meanFreq()
+1. fBodyBodyAccJerkMag-mean()
+1. fBodyBodyAccJerkMag-std()
+1. fBodyBodyAccJerkMag-meanFreq()
+1. fBodyBodyGyroMag-mean()
+1. fBodyBodyGyroMag-std()
+1. fBodyBodyGyroMag-meanFreq()
+1. fBodyBodyGyroJerkMag-mean()
+1. fBodyBodyGyroJerkMag-std()
+1. fBodyBodyGyroJerkMag-meanFreq()
+1. angle(tBodyAccMean,gravity)
+1. angle(tBodyAccJerkMean),gravityMean)
+1. angle(tBodyGyroMean,gravityMean)
+1. angle(tBodyGyroJerkMean,gravityMean)
+1. angle(X,gravityMean)
+1. angle(Y,gravityMean)
+1. angle(Z,gravityMean)
