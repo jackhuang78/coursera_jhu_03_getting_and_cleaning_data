@@ -1,6 +1,6 @@
 # Getting and Cleaning Data Course Project
 
-## How This Script Works
+## How to Use This Script
 Run the script ```run_analysis.R``` in the directory containing the following data files
 * ```X_train.txt```
 * ```X_test.txt```
@@ -11,6 +11,42 @@ Run the script ```run_analysis.R``` in the directory containing the following da
 It will create the following output files:
 * ```data_all.csv```
 * ```data_grouped.csv```
+
+## How This Script Works
+
+Import X_train and X_test with read.table() and merge them with rbind(). Do the same to Y_train and Y_test. (Step 1)
+```
+x.train = read.table('X_train.txt')
+x.test = read.table('X_test.txt')
+x = rbind(x.train, x.test)
+y.train = read.table('Y_train.txt')
+y.test = read.table('Y_test.txt')
+y = rbind(y.train, y.test)
+```
+
+Get the activity names from activity_labels.txt and merge with Y by each activity's code. (Step 3)
+```
+label = read.table('activity_labels.txt')
+y.labeled = merge(y, label, by.x='V1', by.y='V1', sort=F)
+```
+
+Calculate the mean and standard deviation for each measurements. Create a new dataset with appropriate labels. (Step 2 & 4)
+```
+data.all = data.frame(activity=y.labeled$V2, mean=apply(x, 1, mean), sd=apply(x, 1, sd))
+```
+
+Use dplyr library to calculate the average mean and standard devation for each activity. (Step 5)
+```
+library(dplyr)
+data.grouped = summarize(group_by(data.all, activity), mean=mean(mean), sd=mean(sd))
+```
+Output the results.
+```
+write.table(data.all, 'data_all.txt', row.names=F)
+write.table(data.grouped, 'data_grouped.txt', row.names=F)
+```
+
+
 
 ## Codebook
 ### data_all.txt
